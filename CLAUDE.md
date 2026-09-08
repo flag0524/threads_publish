@@ -1,3 +1,5 @@
+
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -94,6 +96,7 @@ Threads Graph API는 "즉시 게시"가 아니라 **컨테이너 → 폴링 → 
 | `SOURCES` | `queue` | 활성 소스(쉼표 구분, 순서 = 우선순위) |
 | `BANNED_WORDS` | (없음) | 본문·댓글에 있으면 발행 차단 |
 | `EXPECTED_THREADS_USERNAME` | `flag_21` | 계정 가드(빈 값이면 검사 안 함) |
+| `NOTIFY_WEBHOOK_URL` | (없음) | 실패·토큰 임박 알림 웹훅(빈 값이면 알림 안 보냄) |
 
 고정 상수(`maxTextLength=500`, 폴링 간격·횟수, HTTP 타임아웃, 로그 보관일)는 `config.js` 하단에 하드코딩. 필수 키 검사는 `assertRequired` — 발행엔 `REQUIRED_RUN`, setup엔 `REQUIRED_SETUP`.
 
@@ -114,4 +117,7 @@ Threads Graph API는 "즉시 게시"가 아니라 **컨테이너 → 폴링 → 
 
 - 2차 `llmSource`(Claude API 생성) — `sources/`에 추가 후 `available`에 등록. `.env.example`에 `ANTHROPIC_API_KEY` 등 자리 있음.
 - 3차 `rssSource`(네이버 블로그 RSS 폴링) — `scheduler.js`에 폴링 스케줄 추가 지점 주석 있음.
-- 알림 훅, `link_attachment` 미리보기 카드 동작 확인(TDD 13장 미결).
+- `link_attachment` 미리보기 카드 동작 확인(TDD 13-2) — 이 코드 경로는 아직 한 번도 실행된 적이 없다. 큐 파일에 `link`를 넣고 실제로 1건 발행해야 확인된다.
+- 댓글 중간 실패 시 자동 이어쓰기(TDD 13-1) — 보류. `partial`이 2건 더 쌓이면 재착수.
+
+알림은 이미 있다 — `core/notify.js`가 `NOTIFY_WEBHOOK_URL`로 POST 1회를 보낸다(ADR-012). 호출부는 `index.js` 발행 실패 catch와 `core/token.js` 잔여 2일 미만 두 곳뿐이고, 성공 알림은 보내지 않는다.

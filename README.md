@@ -55,10 +55,35 @@ node scheduler.js          # 상시 실행 (기본 매일 09:00 KST)
 1. `node index.js --dry-run` — 어떤 파일이 선택되고 글자 수가 몇인지 확인
 2. `node index.js --now` — 실제 발행
 3. **Threads 앱에서 댓글 2~5편이 원글 아래에 달렸는지 눈으로 확인**
-   TDD 4.1에 적힌 미검증 지점입니다. 이 구현은 공식 파라미터 `reply_to_id`를 씁니다
-   (가이드 코드의 `reply_to_thread_key` 아님). 계약 테스트로 파라미터명은 고정해 뒀지만,
-   실제로 달리는지는 첫 발행에서만 확인됩니다.
+   → 2026-09-07 발행 2건에서 댓글 4개 체인이 모두 성공해 확인이 끝났습니다(ADR-009).
+   공식 파라미터 `reply_to_id`를 쓰며 계약 테스트가 파라미터명을 고정합니다.
 4. 확인 끝나면 테스트 글은 수동 삭제
+
+### 링크 첨부 확인 (아직 안 끝난 항목)
+
+`link_attachment` 경로는 아직 한 번도 실행된 적이 없습니다. 큐 파일 중 `link`를 쓰는 게 없어서입니다.
+미리보기 카드가 뜨는지, 본문 안 URL과 중복 표기되는지는 실제로 한 번 올려봐야 알 수 있습니다(TDD 13-2).
+
+1. 큐 파일 하나에 `"link": "https://blog.naver.com/rudatech/223..."` 추가
+2. `node index.js --dry-run` — 로그에 `link_attachment: ...` 줄이 찍히는지 확인
+3. `node index.js --now`
+4. Threads 앱에서 **미리보기 카드가 뜨는지 / 본문 URL과 중복되지 않는지** 확인 후 TDD 13-2에 결과 기록
+
+## 실패 알림 (선택)
+
+`.env`에 `NOTIFY_WEBHOOK_URL`을 넣으면 발행 실패와 토큰 만료 임박을 웹훅으로 받습니다.
+비워 두면 알림을 보내지 않습니다(기본값).
+
+```
+NOTIFY_WEBHOOK_URL=https://hooks.slack.com/services/...
+```
+
+Slack·Discord·카카오워크 등 평문 웹훅이면 URL만 바꾸면 됩니다. 알리는 경우는 두 가지뿐입니다.
+
+- 발행 실패, 그리고 댓글 중간 실패(`partial` — 이미 올라간 댓글 개수를 함께 보냅니다)
+- 토큰 갱신 실패 + 잔여 2일 미만
+
+성공 알림은 보내지 않습니다. 알림 전송이 실패해도 발행은 그대로 진행됩니다.
 
 ## 큐에 글 넣기
 
@@ -146,5 +171,5 @@ npm test
 
 - 2차 `llmSource` (Claude API 생성) — `sources/`에 파일 추가 후 `sources/index.js`의 `available`에 등록하면 됩니다
 - 3차 `rssSource` (네이버 블로그 RSS 폴링)
-- 알림 훅 (TDD 13장 미결 3)
-- `link_attachment` 미리보기 카드 동작 확인 (TDD 13장 미결 2)
+- 댓글 중간 실패 시 자동 이어쓰기 — 원인이던 전파 지연이 재시도로 해소되어 보류(TDD 13-1)
+- `link_attachment` 미리보기 카드 동작 확인 — 위 "링크 첨부 확인" 절차대로 한 번 발행해야 끝납니다(TDD 13-2)
