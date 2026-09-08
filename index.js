@@ -4,6 +4,7 @@ const config = require('./config');
 const logger = require('./core/logger');
 const history = require('./core/history');
 const token = require('./core/token');
+const notify = require('./core/notify');
 const publisher = require('./core/publisher');
 const sources = require('./sources');
 
@@ -73,6 +74,14 @@ async function run({ mode = 'manual', dryRun = false } = {}) {
       if (!dryRun) await source.onFailed(item, err);
       logger.error(`발행 실패 [${item.id}]: ${err.message}`);
       if (err.isAuthError) logger.error('토큰 문제입니다. `node index.js --setup`을 다시 실행하세요.');
+      if (!dryRun) {
+        // partial도 여기로 올라온다. 올라간 댓글 수를 알려야 재발행 때 지울 개수를 안다.
+        const partial = err.entry && err.entry.status === 'partial';
+        await notify.send(
+          `[Threads 자동발행] ${partial ? `중간 실패 — 메인과 댓글 ${err.entry.publishedReplies}개는 이미 올라감` : '실패'}\n` +
+            `${item.id}\n${err.message}`
+        );
+      }
       throw err;
     }
 

@@ -51,6 +51,9 @@ const config = {
   sources: list('SOURCES', ['queue']),
   bannedWords: list('BANNED_WORDS', []),
 
+  // 실패 알림을 보낼 웹훅 URL. 비어 있으면 알림을 보내지 않는다 (ADR-012).
+  notifyWebhookUrl: (process.env.NOTIFY_WEBHOOK_URL || '').trim(),
+
   // 발행 계정 가드. 토큰의 username이 이 값과 다르면 발행을 거부한다.
   // 빈 값이면 검사하지 않는다. 앞의 @는 있어도 되고 없어도 된다.
   expectedUsername: (process.env.EXPECTED_THREADS_USERNAME || '').trim().replace(/^@/, ''),

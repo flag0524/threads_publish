@@ -2,6 +2,7 @@
 const fs = require('fs');
 const config = require('../config');
 const logger = require('./logger');
+const notify = require('./notify');
 const { ThreadsClient } = require('./threadsClient');
 
 const DAY = 86400000;
@@ -136,8 +137,11 @@ async function ensureValid() {
       logger.info(`토큰 갱신 완료 — 새 만료 ${token.expiresAt}`);
     } catch (err) {
       const msg = `토큰 갱신 실패: ${err.message}`;
-      if (left !== null && left < 2) logger.error(`${msg} (잔여 ${left.toFixed(1)}일 — 조치 필요)`);
-      else logger.warn(msg);
+      if (left !== null && left < 2) {
+        logger.error(`${msg} (잔여 ${left.toFixed(1)}일 — 조치 필요)`);
+        // 무인 운영에서 조용히 죽는 유일한 경로라 알림을 보낸다.
+        await notify.send(`[Threads 자동발행] ${msg}\n잔여 ${left.toFixed(1)}일 — \`node index.js --setup\` 필요`);
+      } else logger.warn(msg);
     }
   }
   return token;

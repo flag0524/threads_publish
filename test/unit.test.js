@@ -9,6 +9,8 @@ const validator = require('../core/validator');
 const history = require('../core/history');
 const queueSource = require('../sources/queueSource');
 const token = require('../core/token');
+const notify = require('../core/notify');
+const config = require('../config');
 
 function tmpdir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -185,4 +187,25 @@ test('token: 계정이 다르면 발행을 막는다', () => {
 
 test('token: EXPECTED가 비어 있으면 검사하지 않는다', () => {
   assert.doesNotThrow(() => token.assertExpectedAccount({ username: '아무거나' }, ''));
+});
+
+// ---------- 알림 훅 ----------
+test('notify: 웹훅 URL이 없으면 전송하지 않는다', async () => {
+  const saved = config.notifyWebhookUrl;
+  config.notifyWebhookUrl = '';
+  try {
+    assert.equal(await notify.send('실패'), false);
+  } finally {
+    config.notifyWebhookUrl = saved;
+  }
+});
+
+test('notify: 전송 실패해도 예외를 던지지 않는다', async () => {
+  const saved = config.notifyWebhookUrl;
+  config.notifyWebhookUrl = 'http://127.0.0.1:1/webhook'; // 아무도 듣지 않는 포트
+  try {
+    assert.equal(await notify.send('실패'), false);
+  } finally {
+    config.notifyWebhookUrl = saved;
+  }
 });
