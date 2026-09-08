@@ -1,0 +1,21 @@
+{
+  "name": "threads-auto-poster",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Threads 자동 포스팅 (1차 MVP: 텍스트 게시물 + 연쇄 댓글 + 일 1회 스케줄)",
+  "main": "index.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "setup": "node index.js --setup",
+    "now": "node index.js --now",
+    "dry": "node index.js --dry-run",
+    "token": "node index.js --token-status",
+    "start": "node scheduler.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3"
+  }
+}
