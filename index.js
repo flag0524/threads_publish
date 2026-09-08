@@ -89,7 +89,7 @@ async function run({ mode = 'manual', dryRun = false } = {}) {
     if (result.status === 'skipped-duplicate' && !dryRun) await source.onPublished(item, result);
     // skipped-validation은 고칠 수 있도록 큐에 남긴다 (TDD 9장)
 
-    logger.info(`결과: ${result.status}${result.mainId ? ` — https://www.threads.net/@${(token.read() || {}).username || ''}/post/${result.mainId}` : ''}`);
+    logger.info(`결과: ${result.status}${result.mainId ? ` — https://www.threads.com/@${(token.read() || {}).username || ''}/post/${result.mainId}` : ''}`);
     return result;
   } finally {
     releaseLock();
