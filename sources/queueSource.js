@@ -4,13 +4,16 @@ const path = require('path');
 const config = require('../config');
 const logger = require('../core/logger');
 
+/** 파일 앞머리의 BOM을 제거한다. JSON.parse와 front-matter 매칭이 BOM에 걸린다. */
+const stripBom = (s) => s.replace(/^﻿/, '');
+
 /**
  * Markdown front-matter 형식을 파싱한다.
  * 외부 라이브러리를 쓰지 않고 단순 `key: value`만 지원한다 (TDD 6.1).
  * 본문과 댓글은 `---` 줄로 구분한다.
  */
 function parseMarkdown(raw) {
-  let body = raw.replace(/^﻿/, '');
+  let body = stripBom(raw);
   const meta = {};
 
   const fm = body.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
@@ -27,7 +30,15 @@ function parseMarkdown(raw) {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  return { text: blocks[0] || '', replies: blocks.slice(1), ...meta };
+  // front-matter에서 뽑아 쓰는 키는 link·publishAt 뿐이다.
+  // meta를 통째로 펼치면 `text:` 같은 키가 파싱된 본문을 덮어써서
+  // 쓴 글과 다른 글이 올라갈 수 있다.
+  return {
+    text: blocks[0] || '',
+    replies: blocks.slice(1),
+    link: meta.link,
+    publishAt: meta.publishAt,
+  };
 }
 
 function parseFile(filePath) {
@@ -35,7 +46,7 @@ function parseFile(filePath) {
   const name = path.basename(filePath);
   let parsed;
   if (name.toLowerCase().endsWith('.json')) {
-    parsed = JSON.parse(raw.replace(/^﻿/, ''));
+    parsed = JSON.parse(stripBom(raw));
   } else {
     parsed = parseMarkdown(raw);
   }

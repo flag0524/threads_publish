@@ -155,12 +155,6 @@ class ThreadsClient {
     return data.id;
   }
 
-  async getPublishingLimit() {
-    return this._get(`/${this.apiVersion}/${this.userId}/threads_publishing_limit`, {
-      fields: 'quota_usage,config,reply_quota_usage,reply_config',
-    });
-  }
-
   /**
    * 컨테이너가 FINISHED가 될 때까지 기다린다.
    * 고정 대기 대신 상태를 확인한다 (TDD 4.3).

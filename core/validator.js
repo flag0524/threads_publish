@@ -41,6 +41,11 @@ function validate(item, { maxLength = config.maxTextLength, bannedWords = config
     }
   }
 
+  // 검증을 통과한 항목은 replies가 반드시 배열임을 보장한다.
+  // publisher가 item.replies.length를 바로 읽으므로, 계약을 여기서 확정지어
+  // 호출부마다 방어코드를 까는 것을 막는다.
+  if (errors.length === 0 && item.replies === undefined) item.replies = [];
+
   return { ok: errors.length === 0, errors };
 }
 
