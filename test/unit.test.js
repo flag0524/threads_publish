@@ -11,6 +11,7 @@ const queueSource = require('../sources/queueSource');
 const token = require('../core/token');
 const notify = require('../core/notify');
 const config = require('../config');
+const index = require('../index');
 
 function tmpdir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -51,6 +52,21 @@ test('validator: 잘못된 link와 publishAt을 잡는다', () => {
   assert.equal(r.errors.length, 2);
 });
 
+// 회귀: validator는 replies 없는 항목을 통과시키는데 publisher가 .length를 바로 읽어
+// TypeError로 죽을 수 있었다. 통과한 항목은 replies가 반드시 배열이어야 한다.
+test('validator: replies가 없으면 통과시키되 빈 배열로 확정한다', () => {
+  const item = { text: '본문' };
+  const r = validator.validate(item);
+  assert.equal(r.ok, true);
+  assert.deepEqual(item.replies, [], 'publisher가 바로 .length를 읽어도 안전해야 한다');
+});
+
+test('validator: 검증 실패한 항목은 replies를 건드리지 않는다', () => {
+  const item = { text: '' };
+  assert.equal(validator.validate(item).ok, false);
+  assert.equal(item.replies, undefined);
+});
+
 // ---------- history ----------
 test('history: 같은 id 또는 같은 본문 해시를 중복으로 본다', () => {
   const d = tmpdir('hist-');
@@ -69,15 +85,35 @@ test('history: 실패 이력은 중복으로 치지 않는다', () => {
   assert.equal(history.isDuplicate({ id: 'a.json', text: 'X' }, f), false);
 });
 
-test('history: KST 기준으로 오늘 성공 건수를 센다', () => {
+test('history: KST 기준으로 오늘 발행 건수를 센다', () => {
   const d = tmpdir('hist3-');
   const f = path.join(d, 'history.jsonl');
   // 2026-09-05 00:30 KST = 2026-09-04T15:30Z → KST로는 9/5
-  history.append({ ts: '2026-09-04T15:30:00.000Z', id: '1', textHash: 'h1', status: 'success' }, f);
+  history.append({ ts: '2026-09-04T15:30:00.000Z', id: '1', textHash: 'h1', status: 'success', mainId: 'm1' }, f);
   // 2026-09-04 23:00 KST = 2026-09-04T14:00Z → KST로는 9/4
-  history.append({ ts: '2026-09-04T14:00:00.000Z', id: '2', textHash: 'h2', status: 'success' }, f);
+  history.append({ ts: '2026-09-04T14:00:00.000Z', id: '2', textHash: 'h2', status: 'success', mainId: 'm2' }, f);
   const now = new Date('2026-09-04T16:00:00.000Z'); // KST 9/5 01:00
   assert.equal(history.countToday(f, now), 1);
+});
+
+// 회귀: 2026-09-07에 partial이 상한에 안 잡혀 같은 날 2건이 발행됐다 (ADR-015).
+test('history: partial도 하루 상한에 포함된다 — 메인은 이미 올라갔으므로', () => {
+  const d = tmpdir('hist4-');
+  const f = path.join(d, 'history.jsonl');
+  const ts = '2026-09-04T15:30:00.000Z'; // KST 9/5
+  history.append({ ts, id: '1', textHash: 'h1', status: 'partial', mainId: 'm1', publishedReplies: 0 }, f);
+  const now = new Date('2026-09-04T16:00:00.000Z');
+  assert.equal(history.countToday(f, now), 1);
+});
+
+test('history: 발행되지 않은 이력(mainId 없음)은 상한에 안 잡힌다', () => {
+  const d = tmpdir('hist5-');
+  const f = path.join(d, 'history.jsonl');
+  const ts = '2026-09-04T15:30:00.000Z';
+  history.append({ ts, id: '1', textHash: 'h1', status: 'failed', mainId: null }, f);
+  history.append({ ts, id: '2', textHash: 'h2', status: 'skipped-validation', mainId: null }, f);
+  const now = new Date('2026-09-04T16:00:00.000Z');
+  assert.equal(history.countToday(f, now), 0);
 });
 
 // ---------- queueSource ----------
@@ -101,6 +137,16 @@ test('queueSource: Markdown front-matter를 파싱한다', () => {
   );
   assert.equal(p.text, '메인 본문');
   assert.deepEqual(p.replies, ['첫 댓글', '둘째 댓글']);
+  assert.equal(p.link, 'https://example.com/x');
+});
+
+// 회귀: meta를 통째로 펼치면 front-matter가 파싱된 본문을 덮어썼다.
+test('queueSource: front-matter의 text/replies는 본문을 덮지 못한다', () => {
+  const p = queueSource.parseMarkdown(
+    '---\ntext: 덮어쓰기 시도\nreplies: 덮어쓰기 시도\nlink: https://example.com/x\n---\n진짜 본문\n\n---\n진짜 댓글\n'
+  );
+  assert.equal(p.text, '진짜 본문');
+  assert.deepEqual(p.replies, ['진짜 댓글']);
   assert.equal(p.link, 'https://example.com/x');
 });
 
@@ -187,6 +233,25 @@ test('token: 계정이 다르면 발행을 막는다', () => {
 
 test('token: EXPECTED가 비어 있으면 검사하지 않는다', () => {
   assert.doesNotThrow(() => token.assertExpectedAccount({ username: '아무거나' }, ''));
+});
+
+// ---------- 락 (PID 재사용 방어) ----------
+test('락: 나이가 상한을 넘으면 pid가 살아 있어도 stale로 본다', () => {
+  const now = Date.now();
+  const old = new Date(now - 2 * 3600000).toISOString(); // 2시간 전
+  assert.equal(index.isStaleLock({ pid: 1, startedAt: old }, now, 3600000), true);
+});
+
+test('락: 방금 만든 락은 stale이 아니다', () => {
+  const now = Date.now();
+  const fresh = new Date(now - 60000).toISOString(); // 1분 전
+  assert.equal(index.isStaleLock({ pid: 1, startedAt: fresh }, now, 3600000), false);
+});
+
+test('락: startedAt이 없거나 깨졌으면 믿지 않고 stale로 본다', () => {
+  const now = Date.now();
+  assert.equal(index.isStaleLock({ pid: 1 }, now, 3600000), true);
+  assert.equal(index.isStaleLock({ pid: 1, startedAt: '이상한값' }, now, 3600000), true);
 });
 
 // ---------- 알림 훅 ----------

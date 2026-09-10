@@ -39,7 +39,7 @@ async function postOne(client, { text, replyToId, linkAttachment }, label) {
  * 메인 게시물 + 연쇄 댓글을 발행한다.
  * @returns {{status:string, mainId:string|null, replyIds:string[], error:string|null}}
  */
-async function publishThread(item, { dryRun = false } = {}) {
+async function publishThread(item, { dryRun = false, client: injectedClient = null } = {}) {
   const started = Date.now();
   const textHash = history.hashText(item.text);
   const base = { ts: new Date().toISOString(), id: item.id, source: item.source, textHash };
@@ -66,8 +66,13 @@ async function publishThread(item, { dryRun = false } = {}) {
     return { ...base, mainId: null, replyIds: [], status: 'dry-run', error: null, durationMs: Date.now() - started };
   }
 
-  const t = await token.ensureValid();
-  const client = new ThreadsClient({ accessToken: t.accessToken, userId: t.userId });
+  // injectedClient는 테스트에서 가짜 클라이언트를 넣기 위한 자리다.
+  // 실제 실행 경로에서는 항상 null이라 토큰 검사를 거친다.
+  let client = injectedClient;
+  if (!client) {
+    const t = await token.ensureValid();
+    client = new ThreadsClient({ accessToken: t.accessToken, userId: t.userId });
+  }
 
   const replyIds = [];
   let mainId = null;
