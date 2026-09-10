@@ -1,0 +1,470 @@
+<title>threads-auto-poster 구조도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --ink: #15181c;
+    --paper: #e9ecef;
+    --card: #fbfcfd;
+    --line: #cfd6dc;
+    --muted: #666f78;
+    --seal: #b33a2b;
+    --thread: #2e5e4e;
+    --seal-wash: #f6e8e5;
+    --thread-wash: #e4eeea;
+
+    --display: "Gowun Batang", "Nanum Myeongjo", Batang, serif;
+    --body: "IBM Plex Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "D2Coding", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e4e8ec;
+      --paper: #101317;
+      --card: #191d23;
+      --line: #2c333b;
+      --muted: #8a939d;
+      --seal: #e2796a;
+      --thread: #74c2a3;
+      --seal-wash: #2a1d1b;
+      --thread-wash: #16241f;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink: #e4e8ec;
+    --paper: #101317;
+    --card: #191d23;
+    --line: #2c333b;
+    --muted: #8a939d;
+    --seal: #e2796a;
+    --thread: #74c2a3;
+    --seal-wash: #2a1d1b;
+    --thread-wash: #16241f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 24px 72px;
+  }
+
+  /* ---------- 제호 ---------- */
+  .masthead {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 28px;
+    align-items: start;
+    padding-bottom: 22px;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(30px, 5.2vw, 46px);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 10px 0 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    margin: 12px 0 0;
+    max-width: 60ch;
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  /* 직인 — 이 페이지에서 대담함을 쓰는 유일한 자리 */
+  .seal {
+    flex: none;
+    width: 92px;
+    height: 92px;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    border: 2px solid var(--seal);
+    border-radius: 50%;
+    color: var(--seal);
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    transform: rotate(-7deg);
+  }
+  .seal b { font-size: 15px; font-weight: 500; letter-spacing: 0; }
+
+  /* ---------- 판권 ---------- */
+  .colophon {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 28px;
+    padding: 14px 0 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .colophon span { white-space: nowrap; }
+  .colophon b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- 카드 ---------- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+    margin-top: 32px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    padding: 24px 24px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card--wide { grid-column: 1 / -1; }
+
+  .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--seal);
+    letter-spacing: 0.1em;
+  }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.35;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .lede {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--muted);
+    max-width: 58ch;
+  }
+
+  /* ---------- 데이터 목록 ---------- */
+  .facts {
+    margin: 4px 0 0;
+    display: grid;
+    gap: 8px;
+    font-size: 13.5px;
+  }
+
+  .fact {
+    display: grid;
+    grid-template-columns: minmax(96px, auto) 1fr;
+    gap: 14px;
+    align-items: baseline;
+    padding-top: 8px;
+    border-top: 1px dotted var(--line);
+  }
+  .fact:first-child { border-top: 0; padding-top: 0; }
+
+  .fact dt {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .fact dd { margin: 0; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.92em;
+    background: var(--paper);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .tag--stop { background: var(--seal-wash); color: var(--seal); }
+  .tag--go { background: var(--thread-wash); color: var(--thread); }
+
+  /* ---------- 다이어그램 ---------- */
+  .diagram {
+    overflow-x: auto;
+    background: var(--paper);
+    border: 1px dashed var(--line);
+    padding: 18px 20px;
+    margin: 4px 0 0;
+  }
+  .diagram pre {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--ink);
+    white-space: pre;
+  }
+
+  .note {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+    border-left: 2px solid var(--seal);
+    padding-left: 12px;
+  }
+
+  footer {
+    margin-top: 34px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 560px) {
+    .sheet { padding: 28px 16px 56px; }
+    .masthead { grid-template-columns: 1fr; }
+    .seal { width: 78px; height: 78px; }
+    .fact { grid-template-columns: 1fr; gap: 2px; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <div>
+      <div class="eyebrow">발행 파이프라인 구조도 · 2026-09-10</div>
+      <h1>글 한 편이 올라가기까지</h1>
+      <p class="standfirst">
+        큐 폴더의 파일 하나가 Threads 게시물과 댓글 사슬이 되어 공개되기까지,
+        코드가 무엇을 확인하고 무엇을 막는지 열 장으로 정리했다.
+      </p>
+    </div>
+    <div class="seal" aria-label="발행 계정 flag_21">
+      <span>발행계정<br><b>@flag_21</b><br>고정</span>
+    </div>
+  </header>
+
+  <div class="colophon">
+    <span>Node 20 · CommonJS</span>
+    <span>의존성 <b>3</b>개 — axios · dotenv · node-cron</span>
+    <span>테스트 <b>55</b>개 · 네트워크 없이 실행</span>
+    <span>발행 <b>22:00 KST</b> · 하루 <b>1</b>건</span>
+  </div>
+
+  <main class="cards">
+
+    <!-- 01 -->
+    <section class="card">
+      <div class="num">01</div>
+      <h2>사람이 하는 일은 파일을 넣는 것뿐</h2>
+      <p class="lede">
+        <code>content/queue/</code>에 파일을 두면 끝이다. 파일명 오름차순이 곧 발행 순서라
+        <code>YYYY-MM-DD_</code> 접두어를 붙인다. 나머지는 스케줄러가 한다.
+      </p>
+      <dl class="facts">
+        <div class="fact"><dt>형식</dt><dd>JSON 또는 Markdown — 본문 1개 + 댓글 n개</dd></div>
+        <div class="fact"><dt>선택 필드</dt><dd><code>link</code>, <code>publishAt</code> — 미래면 건너뛰고 다음 파일</dd></div>
+        <div class="fact"><dt>drafts/</dt><dd>승인 대기. 여기 있는 글은 발행되지 않는다</dd></div>
+      </dl>
+    </section>
+
+    <!-- 02 -->
+    <section class="card card--wide">
+      <div class="num">02</div>
+      <h2>전체 흐름 — 잠그고, 세고, 고르고, 올리고, 옮긴다</h2>
+      <div class="diagram">
+<pre>scheduler.js ──node-cron(0 22 * * *, Asia/Seoul)──▶ index.js run()
+                                                     │
+  [1] 락        data/.lock {pid, startedAt}           │  pid 생존 + 나이 1시간
+       │        살아있는 우리 프로세스면 → 이번 회차 skip
+       ▼
+  [2] 하루 상한  history.countToday() >= 1 → 종료      │  mainId 유무로 집계
+       ▼
+  [3] 한 건 픽   sources.fetchNext() → 파일명 순, publishAt 미래면 건너뜀
+       ▼
+  [4] 발행      publisher.publishThread()
+       │         ├─ 검증 실패 ──────────▶ skipped-validation  (파일은 큐에 남음)
+       │         ├─ 중복 ───────────────▶ skipped-duplicate
+       │         ├─ 토큰 ensureValid()   계정 가드 → 만료 → 필요 시 갱신
+       │         ├─ 메인 발행
+       │         └─ 댓글 n개를 5초 간격으로, 각각 직전 글에 매달아 발행
+       ▼
+  [5] 정리      성공·중복 → content/published/     실패 → content/failed/
+       ▼
+  [6] 락 해제   finally — 예외가 나도 반드시 지운다</pre>
+      </div>
+    </section>
+
+    <!-- 03 -->
+    <section class="card">
+      <div class="num">03</div>
+      <h2>게시물 하나에 API를 세 번 부른다</h2>
+      <p class="lede">
+        Threads는 "바로 게시"가 없다. 컨테이너를 만들고, 준비될 때까지 기다렸다가, 그제서야 발행한다.
+        <code>postOne()</code>이 이 셋을 <strong>한 묶음으로</strong> 재시도한다.
+      </p>
+      <dl class="facts">
+        <div class="fact"><dt>1. 생성</dt><dd><code>POST /{userId}/threads</code> → 컨테이너 id</dd></div>
+        <div class="fact"><dt>2. 폴링</dt><dd><code>GET /{containerId}</code> — 1초 간격, 최대 10회</dd></div>
+        <div class="fact"><dt>3. 발행</dt><dd><code>POST /{userId}/threads_publish</code> → 게시물 id</dd></div>
+      </dl>
+      <p class="note">고정 대기 3초 대신 상태를 확인한다. 부족하면 실패하고 넉넉하면 느려지기 때문이다.</p>
+    </section>
+
+    <!-- 04 -->
+    <section class="card">
+      <div class="num">04</div>
+      <h2>댓글은 목록이 아니라 사슬이다</h2>
+      <p class="lede">
+        모든 댓글을 원글에 다는 게 아니라, 각 댓글을 <strong>직전 댓글</strong>에 매단다.
+        타래가 한 줄로 이어져 읽는 사람이 순서대로 따라갈 수 있다.
+      </p>
+      <div class="diagram">
+<pre>메인 p1
+ └─ 댓글1  reply_to_id = p1
+     └─ 댓글2  reply_to_id = p2
+         └─ 댓글3  reply_to_id = p3</pre>
+      </div>
+      <p class="note">
+        파라미터는 <code>reply_to_id</code>다. 참고 가이드의 <code>reply_to_thread_key</code>를 쓰면
+        발행이 조용히 깨진다 — 계약 테스트가 이 이름을 고정한다.
+      </p>
+    </section>
+
+    <!-- 05 -->
+    <section class="card">
+      <div class="num">05</div>
+      <h2>잘못 올라가는 경우를 네 겹으로 막는다</h2>
+      <p class="lede">무인 운영에서 가장 무서운 건 오류가 아니라 <strong>조용히 성공하는 사고</strong>다.</p>
+      <dl class="facts">
+        <div class="fact"><dt>계정 가드</dt><dd>토큰 계정이 <code>flag_21</code>이 아니면 발행 거부. 우회하지 않는다</dd></div>
+        <div class="fact"><dt>락</dt><dd>pid 생존 + 나이 1시간. pid는 OS가 재사용하므로 둘 다 본다</dd></div>
+        <div class="fact"><dt>하루 상한</dt><dd><code>mainId</code>가 있으면 1건. 댓글이 실패한 <code>partial</code>도 메인은 이미 공개된 상태다</dd></div>
+        <div class="fact"><dt>중복</dt><dd>같은 파일명 또는 같은 본문 <code>sha256</code>이 이미 발행됐으면 건너뛴다</dd></div>
+      </dl>
+    </section>
+
+    <!-- 06 -->
+    <section class="card">
+      <div class="num">06</div>
+      <h2>토큰은 스스로 연장한다</h2>
+      <p class="lede">
+        60일짜리 장기 토큰을 <code>data/token.json</code>에 두고, 만료가 가까워지면 발행 직전에 갱신한다.
+        사람이 두 달마다 손댈 일을 없앴다.
+      </p>
+      <dl class="facts">
+        <div class="fact"><dt>수명</dt><dd>60일 · 만료 7일 전부터 갱신 시도</dd></div>
+        <div class="fact"><dt>제약</dt><dd>마지막 갱신 후 24시간 이내에는 API가 재갱신을 막는다</dd></div>
+        <div class="fact"><dt>갱신 실패</dt><dd>기존 토큰이 유효하면 발행은 그대로 진행 <span class="tag tag--go">계속</span></dd></div>
+        <div class="fact"><dt>잔여 2일 미만</dt><dd><code>ERROR</code>로 올리고 웹훅 알림 <span class="tag tag--stop">조치 필요</span></dd></div>
+      </dl>
+    </section>
+
+    <!-- 07 -->
+    <section class="card">
+      <div class="num">07</div>
+      <h2>재시도 여부는 플래그가 정한다</h2>
+      <p class="lede">
+        오류는 <code>threadsClient</code> 한 곳에서 정규화되어 플래그 두 개를 단다.
+        호출부는 상태코드를 다시 뜯어보지 않는다.
+      </p>
+      <dl class="facts">
+        <div class="fact">
+          <dt><span class="tag tag--go">재시도</span></dt>
+          <dd>429 · 5xx · 네트워크 · code 100 <code>does not exist</code> → 2s → 4s → 8s</dd>
+        </div>
+        <div class="fact">
+          <dt><span class="tag tag--stop">중단</span></dt>
+          <dd>190 · 401 · 403 — 토큰 문제는 몇 번을 해도 같다</dd>
+        </div>
+      </dl>
+      <p class="note">
+        code 100은 원래 "없는 리소스"지만, 여기서 참조하는 건 방금 우리가 만든 글뿐이라
+        영구적 부재보다 전파 지연일 확률이 훨씬 높다.
+      </p>
+    </section>
+
+    <!-- 08 -->
+    <section class="card">
+      <div class="num">08</div>
+      <h2>실패에도 얼굴이 네 가지 있다</h2>
+      <p class="lede">
+        <code>data/history.jsonl</code>에 한 줄로 남는다. 어떤 얼굴이냐에 따라 사람이 할 일이 다르다.
+      </p>
+      <dl class="facts">
+        <div class="fact"><dt>partial</dt><dd>메인과 댓글 k개는 <strong>이미 공개됨</strong>. 재발행하려면 올라간 k개를 지우고 큐에 다시 넣는다</dd></div>
+        <div class="fact"><dt>failed</dt><dd>아무것도 안 올라갔다. 파일은 <code>failed/</code>로</dd></div>
+        <div class="fact"><dt>skipped-validation</dt><dd>500자 초과 등. 고칠 수 있게 <strong>큐에 그대로 남긴다</strong></dd></div>
+        <div class="fact"><dt>skipped-duplicate</dt><dd>같은 글이 이미 나갔다</dd></div>
+      </dl>
+    </section>
+
+    <!-- 09 -->
+    <section class="card">
+      <div class="num">09</div>
+      <h2>침묵이 신호다</h2>
+      <p class="lede">
+        실패 알림은 발행을 시도해야만 울린다. 스케줄러가 죽으면 시도 자체가 없어 알림도 영영 오지 않는다.
+        그래서 <strong>살아 있음</strong>을 따로 보낸다.
+      </p>
+      <dl class="facts">
+        <div class="fact"><dt>발행 실패</dt><dd><code>partial</code>이면 이미 올라간 댓글 개수를 함께 보낸다</dd></div>
+        <div class="fact"><dt>토큰 임박</dt><dd>갱신 실패 + 잔여 2일 미만</dd></div>
+        <div class="fact"><dt>생존 신호</dt><dd>주 1회(월요일 09:00) 토큰 잔여와 큐 잔량</dd></div>
+        <div class="fact"><dt>채널</dt><dd><code>NOTIFY_WEBHOOK_URL</code> 하나 — Slack·Discord 어디든</dd></div>
+      </dl>
+      <p class="note">성공 알림은 보내지 않는다. 매일 오는 알림은 곧 무시하게 된다.</p>
+    </section>
+
+    <!-- 10 -->
+    <section class="card">
+      <div class="num">10</div>
+      <h2>아직 없는 것</h2>
+      <p class="lede">
+        소스는 <code>{ fetchNext, onPublished, onFailed }</code> 인터페이스만 맞추면 되고,
+        발행·이력 코드는 손대지 않는다.
+      </p>
+      <dl class="facts">
+        <div class="fact"><dt>2차</dt><dd><code>llmSource</code> — Claude API로 초안 생성, 기본은 수동 승인</dd></div>
+        <div class="fact"><dt>3차</dt><dd><code>rssSource</code> — 네이버 블로그 RSS 폴링</dd></div>
+        <div class="fact"><dt>미검증</dt><dd><code>link_attachment</code> 미리보기 카드 — 이 코드 경로는 아직 한 번도 실행된 적이 없다</dd></div>
+        <div class="fact"><dt>보류</dt><dd>댓글 자동 이어쓰기 — 원인이던 전파 지연이 재시도로 해소됐다</dd></div>
+      </dl>
+    </section>
+
+  </main>
+
+  <footer>
+    threads-auto-poster · 설계 근거는 docs/ADR.md, 구현 순서는 docs/TDD.md에 있다
+  </footer>
+
+</div>
