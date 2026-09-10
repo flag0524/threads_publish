@@ -19,7 +19,7 @@ node index.js --token-status   # 토큰 잔여 일수·계정 확인
 node index.js --dry-run        # API 호출 없이 파이프라인 점검 (안전)
 node index.js --now            # 지금 1건 발행
 node scheduler.js              # 상시 실행 (기본 매일 09:00 KST)
-npm test                       # node --test test/*.test.js (30개)
+npm test                       # node --test test/*.test.js (55개)
 node --test test/unit.test.js  # 단일 파일 테스트
 ```
 
@@ -90,6 +90,7 @@ Threads Graph API는 "즉시 게시"가 아니라 **컨테이너 → 폴링 → 
 |---|---|---|
 | `MAX_POSTS_PER_DAY` | 1 | KST 기준 하루 발행 상한 |
 | `POST_CRON` / `TZ` | `0 9 * * *` / `Asia/Seoul` | 스케줄 |
+| `HEARTBEAT_CRON` | `0 9 * * 1` | 주 1회 생존 신호(웹훅 없으면 로그만) |
 | `REPLY_DELAY_MS` | 5000 | 댓글 사이 간격 |
 | `PUBLISH_RETRY` | 3 | 재시도 횟수(2s→4s→8s) |
 | `TOKEN_REFRESH_BEFORE_DAYS` | 7 | 만료 며칠 전 갱신 |
@@ -107,6 +108,8 @@ Threads Graph API는 "즉시 게시"가 아니라 **컨테이너 → 폴링 → 
 - **오류 재시도는 플래그로만.** 429·5xx·네트워크 = `isRetryable`(2s→4s→8s 백오프). 190/401/403 = `isAuthError`(즉시 중단). 새 오류 처리를 넣을 땐 `normalizeError`에서 플래그를 세팅하지, 호출부에서 상태코드를 다시 분기하지 말 것.
 - **500자 초과는 발행 안 하고 `skipped-validation`** — 파일은 고칠 수 있게 큐에 남긴다(다른 skip과 달리 `onPublished` 호출 안 함).
 - **댓글 중간 실패 = `partial`.** 메인+댓글 k개는 이미 올라간 상태로 파일이 `failed/`로 감. 자동 이어쓰기 없음 — 재발행 시 올라간 k개를 수동으로 지우고 큐에 다시 넣어야 한다.
+- **하루 상한은 `mainId` 유무로 센다** — 상태 이름이 아니다(`history.countToday`, ADR-015). `partial`도 메인은 올라갔으므로 1건으로 친다. 새 상태를 추가해도 이 기준은 안 건드려도 된다.
+- **락은 pid 생존 + 나이(`lockMaxAgeMs` 1시간)를 함께 본다**(ADR-016). pid는 OS가 재사용하므로 생존 검사만으로는 영원히 멈출 수 있다. 발행 1회가 1시간을 넘길 설정으로 바꾸면 이 상수도 같이 올릴 것.
 - **테스트는 네트워크 없이 돈다.** 계약 테스트는 `ThreadsClient`의 axios 어댑터를 갈아끼워 검증. 새 API 호출을 추가하면 같은 방식으로 계약 테스트를 붙일 것.
 
 ## 설계 문서

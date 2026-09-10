@@ -356,7 +356,8 @@ if (SOURCES.includes('rss')) cron.schedule(RSS_POLL_CRON, rssSource.poll, { time
 - 페이로드는 `{ text, content }`. Slack은 `text`, Discord는 `content`를 읽고 모르는 키는 무시한다. 채널별 어댑터를 두지 않는다.
 - 전송 전 `logger.mask()`를 태운다 — 오류 메시지에 섞인 토큰이 외부로 나가지 않게.
 - 알림 실패는 `logger.warn`으로 삼키고 `false`를 반환한다. 알림 때문에 발행이 실패하면 안 된다.
-- 호출부는 두 곳뿐이다.
+- 호출부는 세 곳이다.
   1. `index.js` 발행 실패 catch — `partial`도 예외로 올라오므로 failed와 partial을 함께 덮는다. partial이면 이미 올라간 댓글 수를 본문에 넣는다.
-  2. `core/token.js` 갱신 실패 + 잔여 2일 미만 — 무인 운영에서 조용히 죽는 유일한 경로.
+  2. `core/token.js` 갱신 실패 + 잔여 2일 미만.
+  3. `scheduler.js` `sendHeartbeat()` — 주 1회 생존 신호(`HEARTBEAT_CRON`, 기본 월요일 09:00). 1·2는 `run()`이 돌아야 울리므로, 스케줄러가 죽으면 실패조차 없어 알림도 안 온다. 침묵을 신호로 쓰려면 살아 있음을 따로 증명해야 한다.
 - 성공 알림은 보내지 않는다. 매일 오는 알림은 곧 무시하게 되고, 성공은 `history.jsonl`에 남는다.
