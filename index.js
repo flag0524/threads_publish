@@ -17,11 +17,11 @@ function acquireLock() {
     try {
       info = JSON.parse(fs.readFileSync(p, 'utf8'));
     } catch { /* 깨진 락은 stale로 본다 */ }
-    if (info.pid && isAlive(info.pid)) {
+    if (info.pid && isAlive(info.pid) && !isStaleLock(info)) {
       logger.warn(`이미 실행 중입니다 (pid ${info.pid}, 시작 ${info.startedAt}) — 이번 실행은 건너뜁니다`);
       return false;
     }
-    logger.warn(`stale 락 삭제 (pid ${info.pid ?? '?'})`);
+    logger.warn(`stale 락 삭제 (pid ${info.pid ?? '?'}, 시작 ${info.startedAt ?? '?'})`);
     fs.unlinkSync(p);
   }
   fs.writeFileSync(p, JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }), 'utf8');
@@ -35,6 +35,17 @@ function isAlive(pid) {
   } catch (e) {
     return e.code === 'EPERM'; // 남의 프로세스지만 살아 있음
   }
+}
+
+/**
+ * 락이 너무 오래됐는가?
+ * pid는 OS가 재사용하므로 "살아 있다"만으로는 우리 프로세스인지 알 수 없다.
+ * 발행 1회는 길어야 2분이라, lockMaxAgeMs를 넘긴 락은 재사용된 pid로 본다.
+ */
+function isStaleLock(info, now = Date.now(), maxAgeMs = config.lockMaxAgeMs) {
+  const started = new Date(info && info.startedAt).getTime();
+  if (Number.isNaN(started)) return true; // 시작 시각이 없거나 깨졌으면 믿지 않는다
+  return now - started > maxAgeMs;
 }
 
 function releaseLock() {
@@ -152,4 +163,4 @@ async function main() {
 
 if (require.main === module) main();
 
-module.exports = { run, acquireLock, releaseLock, isAlive };
+module.exports = { run, acquireLock, releaseLock, isAlive, isStaleLock };

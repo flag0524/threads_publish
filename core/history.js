@@ -36,11 +36,15 @@ function isDuplicate(item, file = config.paths.history) {
   );
 }
 
-/** KST 기준 오늘 성공 건수. */
+/**
+ * KST 기준 오늘 발행 건수.
+ * 상태 이름이 아니라 mainId 유무로 센다 — partial도 메인 글은 이미 올라간 상태라
+ * 하루 상한에 포함해야 한다 (ADR-015).
+ */
 function countToday(file = config.paths.history, now = new Date()) {
   const kst = (d) => new Date(new Date(d).getTime() + 9 * 3600000).toISOString().slice(0, 10);
   const today = kst(now);
-  return readAll(file).filter((e) => e.status === 'success' && kst(e.ts) === today).length;
+  return readAll(file).filter((e) => e.mainId && kst(e.ts) === today).length;
 }
 
 module.exports = { hashText, readAll, append, isDuplicate, countToday };

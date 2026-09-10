@@ -41,6 +41,8 @@ const config = {
 
   apiVersion: process.env.THREADS_API_VERSION || 'v1.0',
   postCron: process.env.POST_CRON || '0 9 * * *',
+  // 주 1회 생존 신호. 이 알림이 안 오면 스케줄러가 죽은 것이다 (ADR-012).
+  heartbeatCron: process.env.HEARTBEAT_CRON || '0 9 * * 1',
   tz: process.env.TZ || 'Asia/Seoul',
 
   maxPostsPerDay: num('MAX_POSTS_PER_DAY', 1),
@@ -59,6 +61,9 @@ const config = {
   expectedUsername: (process.env.EXPECTED_THREADS_USERNAME || '').trim().replace(/^@/, ''),
 
   // 고정 상수
+  // 락 나이 상한. 발행 1회가 길어야 2분이므로 이보다 오래된 락은 pid가 살아 있어도
+  // 재사용된 남의 pid로 본다 (ADR-016).
+  lockMaxAgeMs: 3600000,
   maxTextLength: 500,
   containerPollIntervalMs: 1000,
   containerPollMaxTries: 10,
