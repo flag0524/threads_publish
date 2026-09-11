@@ -12,6 +12,7 @@ const token = require('../core/token');
 const notify = require('../core/notify');
 const config = require('../config');
 const index = require('../index');
+const catchup = require('../core/catchup');
 
 function tmpdir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -252,6 +253,44 @@ test('락: startedAt이 없거나 깨졌으면 믿지 않고 stale로 본다', (
   const now = Date.now();
   assert.equal(index.isStaleLock({ pid: 1 }, now, 3600000), true);
   assert.equal(index.isStaleLock({ pid: 1, startedAt: '이상한값' }, now, 3600000), true);
+});
+
+// ---------- 기동 시 따라잡기 (ADR-017) ----------
+// KST 기준 시각을 UTC Date로 만든다. 2026-09-12 23:10 KST = 14:10Z
+const kst = (h, m) => new Date(Date.UTC(2026, 8, 12, h - 9, m));
+
+test('catchup: 단순 일간 cron만 시:분을 뽑는다', () => {
+  assert.deepEqual(catchup.dailyCronTime('0 22 * * *'), { hour: 22, minute: 0 });
+  assert.deepEqual(catchup.dailyCronTime('30 9 * * *'), { hour: 9, minute: 30 });
+  assert.equal(catchup.dailyCronTime('0 9 * * 1'), null, '요일 지정은 판정 포기');
+  assert.equal(catchup.dailyCronTime('*/5 * * * *'), null, '분 단위 반복은 판정 포기');
+  assert.equal(catchup.dailyCronTime('0 22 * *'), null, '필드가 5개가 아니면 포기');
+  assert.equal(catchup.dailyCronTime(''), null);
+});
+
+test('catchup: 예정 시각이 지났고 오늘 0건이면 따라잡는다', () => {
+  assert.equal(catchup.shouldCatchUp('0 22 * * *', kst(23, 10), 0), true);
+});
+
+test('catchup: 예정 시각 전이면 따라잡지 않는다 — 정규 회차가 처리한다', () => {
+  assert.equal(catchup.shouldCatchUp('0 22 * * *', kst(8, 57), 0), false);
+});
+
+// 새벽 부팅에서 글이 나가면 도달이 없다. 이 케이스를 막는 것이 설계 의도다.
+test('catchup: 다음 날 새벽 부팅은 따라잡지 않는다', () => {
+  assert.equal(catchup.shouldCatchUp('0 22 * * *', kst(1, 32), 0), false);
+});
+
+test('catchup: 오늘 이미 발행했으면 따라잡지 않는다', () => {
+  assert.equal(catchup.shouldCatchUp('0 22 * * *', kst(23, 10), 1), false);
+});
+
+test('catchup: 예정 시각과 같은 분이면 따라잡는다 — 중복은 락과 상한이 막는다', () => {
+  assert.equal(catchup.shouldCatchUp('0 22 * * *', kst(22, 0), 0), true);
+});
+
+test('catchup: 판정 불가 cron이면 따라잡지 않는다', () => {
+  assert.equal(catchup.shouldCatchUp('*/5 * * * *', kst(23, 10), 0), false);
 });
 
 // ---------- 알림 훅 ----------

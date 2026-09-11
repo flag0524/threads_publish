@@ -4,6 +4,8 @@ const config = require('./config');
 const logger = require('./core/logger');
 const notify = require('./core/notify');
 const token = require('./core/token');
+const history = require('./core/history');
+const catchup = require('./core/catchup');
 const queueSource = require('./sources/queueSource');
 const { run } = require('./index');
 
@@ -28,6 +30,31 @@ cron.schedule(
   },
   { timezone: config.tz }
 );
+
+/**
+ * 기동 시 당일 누락분 따라잡기 (ADR-017).
+ * PC가 절전이면 cron 타이머가 멈추고, 깨어나도 지나간 시각을 소급 실행하지 않는다.
+ * 판정은 core/catchup.js에 있다 — 같은 날 안에서만 따라잡는다.
+ */
+async function catchUpIfMissed() {
+  const at = catchup.dailyCronTime(config.postCron);
+  if (!at) {
+    logger.info(`POST_CRON이 단순 일간 형식이 아니라 따라잡기를 건너뜁니다: "${config.postCron}"`);
+    return;
+  }
+  if (!catchup.shouldCatchUp(config.postCron, new Date(), history.countToday())) return;
+
+  const hhmm = `${String(at.hour).padStart(2, '0')}:${String(at.minute).padStart(2, '0')}`;
+  logger.warn(`오늘 ${hhmm} 회차가 누락된 상태입니다 — 지금 따라잡습니다`);
+  try {
+    await run({ mode: 'catchup' });
+  } catch (err) {
+    // run()이 이미 로그와 알림을 보냈다. 여기서 죽으면 스케줄러가 안 뜬다.
+    logger.error(`따라잡기 실패: ${err.message}`);
+  }
+}
+
+catchUpIfMissed();
 
 /**
  * 주 1회 생존 신호.

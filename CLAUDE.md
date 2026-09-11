@@ -38,7 +38,7 @@ node --test test/unit.test.js  # 단일 파일 테스트
 - `core/threadsClient.js` — Threads Graph API 호출의 **유일한** 지점. axios 래핑, 오류를 `ThreadsApiError`로 정규화(`isRetryable` / `isAuthError` 플래그). API를 만질 일은 여기만 고친다.
 - `core/publisher.js` — 발행 로직. `postOne()` = 컨테이너 생성 → `FINISHED` 폴링 → publish 를 한 묶음으로 재시도. 메인 발행 후 각 댓글을 **직전 항목에 체이닝**(`reply_to_id = 직전 id`).
 - `core/token.js` — 토큰 생명주기. 만료 7일 전 자동 갱신(24h 이내 재갱신 불가), 갱신 실패해도 기존 토큰 유효하면 발행 진행.
-- `core/history.js` / `validator.js` / `logger.js` — 이력(JSONL)·검증·로깅. 사이드이펙트 격리.
+- `core/history.js` / `validator.js` / `logger.js` / `catchup.js` — 이력(JSONL)·검증·로깅·누락 판정. 사이드이펙트 격리(`catchup.js`는 순수 함수만).
 - `sources/` — 콘텐츠 소스. 각 소스는 `{ name, fetchNext, onPublished, onFailed }` 인터페이스. 현재 `queueSource` 하나. 새 소스는 파일 추가 후 `sources/index.js`의 `available`에 등록.
 
 ### 발행 프로토콜 (한 게시물 = 3 API 호출)
@@ -109,6 +109,7 @@ Threads Graph API는 "즉시 게시"가 아니라 **컨테이너 → 폴링 → 
 - **500자 초과는 발행 안 하고 `skipped-validation`** — 파일은 고칠 수 있게 큐에 남긴다(다른 skip과 달리 `onPublished` 호출 안 함).
 - **댓글 중간 실패 = `partial`.** 메인+댓글 k개는 이미 올라간 상태로 파일이 `failed/`로 감. 자동 이어쓰기 없음 — 재발행 시 올라간 k개를 수동으로 지우고 큐에 다시 넣어야 한다.
 - **하루 상한은 `mainId` 유무로 센다** — 상태 이름이 아니다(`history.countToday`, ADR-015). `partial`도 메인은 올라갔으므로 1건으로 친다. 새 상태를 추가해도 이 기준은 안 건드려도 된다.
+- **따라잡기는 같은 날 안에서만**(ADR-017). `scheduler.js` 기동 시 오늘 예정 시각이 지났고 발행이 0건이면 1건 올린다. 다음 날 새벽 부팅에서는 안 올린다 — 도달 없는 시간대 발행을 막는 게 이 제약의 존재 이유이므로 "항상 따라잡기"로 바꾸지 말 것.
 - **락은 pid 생존 + 나이(`lockMaxAgeMs` 1시간)를 함께 본다**(ADR-016). pid는 OS가 재사용하므로 생존 검사만으로는 영원히 멈출 수 있다. 발행 1회가 1시간을 넘길 설정으로 바꾸면 이 상수도 같이 올릴 것.
 - **테스트는 네트워크 없이 돈다.** 계약 테스트는 `ThreadsClient`의 axios 어댑터를 갈아끼워 검증. 새 API 호출을 추가하면 같은 방식으로 계약 테스트를 붙일 것.
 
